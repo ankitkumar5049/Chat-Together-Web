@@ -94,7 +94,7 @@ export const getUserNameById = async (
 ): Promise<string> => {
   const userDoc = await getDoc(doc(db, "users", userId));
   if (userDoc.exists()) {
-    return userDoc.data().username || "Unknown";
+    return userDoc.data().name || "Unknown";
   }
   return "Unknown";
 };

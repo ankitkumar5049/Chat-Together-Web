@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { FaUser } from "react-icons/fa";
-import { getUserChats } from "../utils/firebaseQuery";
+import { getUserChats, getUserNameById } from "../utils/firebaseQuery";
 import { useLongPress } from "use-long-press";
 import { getAuth } from "firebase/auth";
 import { Firestore, getFirestore } from "firebase/firestore"; // Import Firestore
@@ -26,21 +26,64 @@ export default function Dashboard() {
 
   const db = getFirestore(); // Initialize Firestore
 
-  // Fetch chats and map to users
   useEffect(() => {
-    if (currentUserId) {
-      const fetchChats = async () => {
-        const chats = await getUserChats(db, currentUserId);
-        const users = chats.map((chat) => {
-          const otherUserId =
-            chat.user1 === currentUserId ? chat.user2 : chat.user1;
-          return [otherUserId, otherUserId] as User; // Placeholder for user name
-        });
-        setFilteredUsers(users);
-      };
-      fetchChats();
+    const storedUsers = localStorage.getItem("filteredUsers");
+
+    if (storedUsers) {
+      setFilteredUsers(JSON.parse(storedUsers));
+    } else {
+      if (currentUserId) {
+        const fetchChats = async () => {
+          try {
+            const chats = await getUserChats(db, currentUserId);
+            console.log("Fetched chats:", chats);
+
+            const users: User[] = [];
+            for (const chat of chats) {
+              const otherUserId =
+                chat.user1 === currentUserId ? chat.user2 : chat.user1;
+              const userName = await getUserNameById(db, otherUserId);
+              users.push([otherUserId, userName]);
+            }
+
+            console.log("Users:", users);
+            setFilteredUsers(users);
+
+            localStorage.setItem("filteredUsers", JSON.stringify(users));
+          } catch (error) {
+            console.error("Error fetching chats:", error);
+          }
+        };
+
+        fetchChats();
+      }
     }
   }, [currentUserId, db]);
+
+  // useEffect(() => {
+  //   if (currentUserId) {
+  //     const fetchChats = async () => {
+  //       try {
+  //         const chats = await getUserChats(db, currentUserId);
+  //         console.log("Fetched chats:", chats); // Check if chats are fetched properly
+
+  //         const users: User[] = [];
+  //         for (const chat of chats) {
+  //           const otherUserId =
+  //             chat.user1 === currentUserId ? chat.user2 : chat.user1;
+  //           const name = await getUserNameById(db, otherUserId);
+  //           users.push([otherUserId, name]);
+  //         }
+  //         console.log("Users:", users); // Check the users array before setting state
+  //         setFilteredUsers(users);
+  //       } catch (error) {
+  //         console.error("Error fetching chats:", error);
+  //       }
+  //     };
+
+  //     fetchChats();
+  //   }
+  // }, [currentUserId, db]);
 
   const handleSearch = () => {
     setIsLoading(true);
