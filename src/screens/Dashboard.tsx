@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { FaUser } from "react-icons/fa";
-import { getUserChats, getUserNameById } from "../utils/firebaseQuery";
-import { useLongPress } from "use-long-press";
+import {
+  getUserChats,
+  getUserNameById,
+  searchUserByEmail,
+} from "../utils/firebaseQuery";
 import { getAuth } from "firebase/auth";
-import { Firestore, getFirestore } from "firebase/firestore"; // Import Firestore
+import { getFirestore } from "firebase/firestore"; // Import Firestore
 
 type User = [string, string]; // [userId, userName]
 
@@ -60,57 +63,24 @@ export default function Dashboard() {
     }
   }, [currentUserId, db]);
 
-  // useEffect(() => {
-  //   if (currentUserId) {
-  //     const fetchChats = async () => {
-  //       try {
-  //         const chats = await getUserChats(db, currentUserId);
-  //         console.log("Fetched chats:", chats); // Check if chats are fetched properly
+  const handleSearch = async () => {
+    if (!username || !currentUserId) return;
 
-  //         const users: User[] = [];
-  //         for (const chat of chats) {
-  //           const otherUserId =
-  //             chat.user1 === currentUserId ? chat.user2 : chat.user1;
-  //           const name = await getUserNameById(db, otherUserId);
-  //           users.push([otherUserId, name]);
-  //         }
-  //         console.log("Users:", users); // Check the users array before setting state
-  //         setFilteredUsers(users);
-  //       } catch (error) {
-  //         console.error("Error fetching chats:", error);
-  //       }
-  //     };
-
-  //     fetchChats();
-  //   }
-  // }, [currentUserId, db]);
-
-  const handleSearch = () => {
     setIsLoading(true);
-    setTimeout(() => {
-      const filtered = filteredUsers.filter(([_, name]) =>
-        name.toLowerCase().includes(username.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-      setIsLoading(false);
-    }, 1000);
+
+    const result = await searchUserByEmail(db, username, currentUserId);
+    if (result) {
+      setFilteredUsers((prev) => {
+        const alreadyExists = prev.some(([id]) => id === result[0]);
+        return alreadyExists ? prev : [...prev, result];
+      });
+      setUsername(""); // clear search box
+    } else {
+      alert("User not found!");
+    }
+
+    setIsLoading(false);
   };
-
-  // const handleDelete = (userId: string) => {
-  //   setFilteredUsers((prev) => prev.filter(([id]) => id !== userId));
-  //   setShowDialog(false);
-  //   if (selectedUser?.[0] === userId) setSelectedUser(null);
-  // };
-
-  // // useLongPress hook outside the map function
-  // const handleLongPress = (userId: string, userName: string) => {
-  //   const bind = useLongPress(() => {
-  //     setUserToDelete([userId, userName]);
-  //     setShowDialog(true);
-  //   });
-
-  //   return bind;
-  // };
 
   return (
     <div className="w-screen h-screen flex bg-gray-200">
@@ -130,7 +100,10 @@ export default function Dashboard() {
           />
           <button
             className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"
-            onClick={handleSearch}
+            onClick={
+              // handleSearch
+              handleSearch
+            }
             disabled={isLoading}
           >
             Search

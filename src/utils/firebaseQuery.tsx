@@ -41,14 +41,12 @@ export async function getUserChats(
 export async function searchUserByEmail(
   db: Firestore,
   username: string,
-  navigate: NavigateFunction,
-  currentUserId: string,
-  onComplete: (message: string) => void
-) {
+  currentUserId: string
+): Promise<[string, string] | null> {
   try {
     const formattedUsername = username.endsWith(".com")
       ? username
-      : `${username}@chat.com`;
+      : `${username}@username.com`;
 
     const userQuery = query(
       collection(db, "users"),
@@ -61,30 +59,27 @@ export async function searchUserByEmail(
       const otherUserId = doc.id;
       const otherUserName = doc.get("name") || "Unknown User";
 
-      // navigate to /chats/:currentUserId/:otherUserId
-      navigate(`/chats/${currentUserId}/${otherUserId}`);
-
-      // Update local storage or context as needed
       const localChatsKey = `chats_${currentUserId}`;
-      const localChats = JSON.parse(
+      const localChats: [string, string][] = JSON.parse(
         localStorage.getItem(localChatsKey) || "[]"
       );
 
-      const exists = localChats.some(
-        (chat: any) => chat.userId === otherUserId
-      );
-      if (!exists) {
-        localChats.push({ userId: otherUserId, userName: otherUserName });
-        localStorage.setItem(localChatsKey, JSON.stringify(localChats));
-      }
+      const exists = localChats.some(([id]) => id === otherUserId);
 
-      onComplete("");
+      if (!exists) {
+        const newChat: [string, string] = [otherUserId, otherUserName];
+        localChats.push(newChat);
+        localStorage.setItem(localChatsKey, JSON.stringify(localChats));
+        return newChat;
+      } else {
+        return [otherUserId, otherUserName];
+      }
     } else {
-      onComplete("No User Found!");
+      return null;
     }
   } catch (error) {
     console.error("Error searching user:", error);
-    onComplete("Unexpected Error!");
+    return null;
   }
 }
 
