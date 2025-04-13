@@ -5,9 +5,8 @@ import {
   where,
   Firestore,
 } from "firebase/firestore";
+import { getOrCreateChatRoom } from "./chat";
 import { doc, getDoc } from "firebase/firestore";
-
-import { NavigateFunction } from "react-router-dom";
 
 export async function getUserChats(
   db: Firestore,
@@ -57,6 +56,8 @@ export async function searchUserByEmail(
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
       const otherUserId = doc.id;
+      const chatId = await getOrCreateChatRoom(db, currentUserId, otherUserId);
+      console.log(chatId);
       const otherUserName = doc.get("name") || "Unknown User";
 
       const localChatsKey = `chats_${currentUserId}`;

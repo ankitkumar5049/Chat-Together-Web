@@ -72,7 +72,12 @@ export default function Dashboard() {
     if (result) {
       setFilteredUsers((prev) => {
         const alreadyExists = prev.some(([id]) => id === result[0]);
-        return alreadyExists ? prev : [...prev, result];
+        if (!alreadyExists) {
+          const updated = [...prev, result];
+          localStorage.setItem("filteredUsers", JSON.stringify(updated));
+          return updated;
+        }
+        return prev;
       });
       setUsername(""); // clear search box
     } else {
